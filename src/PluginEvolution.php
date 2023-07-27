@@ -41,7 +41,8 @@ class PluginEvolution {
 			@mkdir($assetsPath."files/".$dir, $permsFolder, true);
 		endif;
 	}
-
+	
+	// Возвращение списка ID родителей
 	private static function getParent(\DocumentParser $modx, $id, &$lists, $params)
 	{
 		$table_content = $modx->getFullTableName('site_content');
@@ -52,6 +53,7 @@ class PluginEvolution {
 		endif;
 	}
 	
+	// Получаем расширение файла
 	private static function getFileExt($filename) {
 		//получаем информацию о файле в ассоциативный массив
 		$path_info = pathinfo($filename);
@@ -64,25 +66,18 @@ class PluginEvolution {
 			return "";
 		}
 	}
+	
 	// Минификация HTML кода
 	public static function minifyHTML(\DocumentParser $modx)
 	{
 		$minify = true;
-		//global $use______hash;
+		
 		if (isset($_SERVER['HTTP_X_REQUESTED_WITH']) && !empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest'):
 			if(!empty($_POST["formid"])):
 				$minify = false;
 			endif;
 		endif;
-		/*$id = (int)$modx->documentObject['id'];
-		if($id == 28){
-			@file_put_contents(MODX_BASE_PATH . 'sitemap.xml', $modx->documentOutput);
-			return;
-		}
-		if($id == 29){
-			@file_put_contents(MODX_BASE_PATH . 'robots.txt', $modx->documentOutput);
-			return;
-		}*/
+		
 		if($modx->documentObject['minify'][1]==1 && $minify):
 			$str = $modx->documentOutput;
 			$re = '/((?:content=))(?:"|\')(.*)?(?:"|\')/U';
@@ -101,8 +96,7 @@ class PluginEvolution {
 		endif;
 	}
 
-	// Роутер на короткие ссылки по ID документа.
-	// Так же в данной версии ведётся обработка на несуществующие файлы изображений и pdf
+	// Ведётся обработка на несуществующие файлы изображений и pdf
 	public static function routeNotFound(\DocumentParser $modx, array $params)
 	{
 		//$arrReque = explode("?", $_SERVER['REQUEST_URI']);
@@ -110,23 +104,9 @@ class PluginEvolution {
 		$tmp_url = trim($arrQuery['q'], '/');
 		$tmp_url = rtrim($tmp_url, $modx->config['friendly_url_suffix']);
 		$url = ltrim($tmp_url, '/');
-		$arr = explode('/', $url);
-		if(isset($arr[0])):
-			$arr[0] = intval($arr[0]);
-		endif;
-		if(is_int($arr[0])):
-			$id = (int)$arr[0];
-			$q = $modx->db->query("SELECT `id` FROM ".$modx->getFullTableName("site_content")." WHERE `id`='".$modx->db->escape($id)."'");
-			$docid = (int)$modx->db->getValue($q);
-			if($docid > 0):
-				$arrQuery['hash'] = Util::has();
-				unset($arrQuery['q']);
-				$has = "?" . http_build_query($arrQuery);
-				$urlid = $modx->makeUrl($docid);// . $has;
-				$modx->sendRedirect($urlid, 0, 'REDIRECT_HEADER', 'HTTP/1.1 301 Moved Permanently');
-				die();
-			endif;
-		endif;
+		/**
+		 * Получаем расширение файла
+		**/
 		$ext = self::getFileExt($url);
 		if($ext != "" && is_string($ext)):
 			switch ($ext) {
@@ -151,6 +131,11 @@ class PluginEvolution {
 					$modx->tpl = \DLTemplate::getInstance($modx);
 					$css = is_file(dirname(__FILE__) . "/print.css") ? file_get_contents(dirname(__FILE__) . "/print.css") : "";
 					$filename = pathinfo($tmp_url, PATHINFO_BASENAME);
+					/**
+					 * $header
+					 * $footer
+					 * Файлы printpage_header.html и printpage_footer.html должны лежать в директории шаблона. Путь до директории assets/templates/projectsoft/tpl/ не изменять. Он должен существовать обязательно.
+					**/
 					// Header
 					$header = '@CODE: ' . (is_file(MODX_BASE_PATH . 'assets/templates/projectsoft/tpl/printpage_header.html') ? file_get_contents(MODX_BASE_PATH . 'assets/templates/projectsoft/tpl/printpage_header.html') : "");
 					// Footer
@@ -168,8 +153,6 @@ class PluginEvolution {
 						'setAutoTopMargin' => 'pad',
 						'setAutoBottomMargin' => 'pad'
 					]);
-					// Set headers 302 Moved Temporarily
-					header('HTTP/1.1 302 Moved Temporarily');
 					// Set headers Pragma: no-cache
 					header('Pragma: no-cache');
 					header('Cache-Control: no-store, no-cache, must-revalidate');
@@ -194,6 +177,8 @@ class PluginEvolution {
 					$mpdf->WriteHTML($html, HTMLParserMode::HTML_BODY);
 					switch ($ext) {
 						case 'pdf':
+							// Set headers 302 Moved Temporarily
+							header('HTTP/1.1 302 Moved Temporarily');
 							// return view pdf
 							$mpdf->Output();
 							die();
