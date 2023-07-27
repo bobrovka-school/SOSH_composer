@@ -115,6 +115,7 @@ class PluginEvolution {
 				case 'jpeg':
 				case 'png':
 				case 'gif':
+				//case 'bmp':
 					$re = '@^.+((?:assets\/files|images).*$)@';
 					//preg_match($re, $url, $matches);
 					if(preg_match($re, $url, $matches)){
@@ -199,7 +200,8 @@ class PluginEvolution {
 							// new Image
 							$img = new \imagick($file);
 							// set format
-							$img->setImageFormat('png');
+							$ext = $ext == 'jpg' ? 'jpeg' : $ext;
+							$img->setImageFormat($ext);
 							// write image to img file
 							$img->writeImage($dir . '/' . $filename);
 							// delete pdf file
@@ -221,14 +223,14 @@ class PluginEvolution {
 	public static function notFound(\DocumentParser $modx, $params)
 	{
 		header("Content-type: text/plain; charset=" . $modx->config['modx_charset']);
-		exit();
+		//exit();
 		$params = !is_array($params) ? array() : $params;
 		parse_str(htmlspecialchars_decode($_SERVER['QUERY_STRING'], ENT_HTML5), $arrQuery);
 		$tmp_url = trim($arrQuery['q'], '/');
 		$tmp_url = rtrim($tmp_url, $modx->config['friendly_url_suffix']);
 		$url = ltrim($tmp_url, '/');
 		$arr = explode('/', $url);
-		print_r($arr);
+		// print_r($arr);
 		if(isset($arr[0])):
 			$arr[0] = intval($arr[0]);
 		endif;
